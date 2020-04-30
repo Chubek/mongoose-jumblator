@@ -1,0 +1,35 @@
+{
+  "name": "mongoose-jumblator",
+  "version": "1.0.0",
+  "description": "A field-based Mongoose encryption module.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node __test__.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chubek/mongoose-jumblator.git"
+  },
+  "keywords": [
+    "mongoose",
+    "mongodb",
+    "encryption",
+    "encryptor",
+    "AES",
+    "database",
+    "mongoose",
+    "field",
+    "encryption",
+    "field",
+    "encryption"
+  ],
+  "author": "Chubak Bidpaa",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Chubek/mongoose-jumblator/issues"
+  },
+  "homepage": "https://github.com/Chubek/mongoose-jumblator#readme",
+  "dependencies": {
+    "crypto-js": "^4.0.0"
+  }
+}
