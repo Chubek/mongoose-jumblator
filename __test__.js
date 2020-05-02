@@ -27,19 +27,27 @@ const SCHM = new Schema({
     type: String,
     encrypt: true,
   },
+  dell: {
+    type: String,
+    encrypt: true,
+  },
+  poor: String,
 });
 
-SCHM.plugin(jumblator, { secret: "HDFDSF", index: true });
+SCHM.plugin(jumblator, { secret: "HDFDSF" });
 
 const SCHMMODEL = mongoose.model("SSS", SCHM);
-/*
+
 const schmm = new SCHMMODEL({
   hell: "HLLL",
+  dell: "hash",
+  poor: "boor",
 });
 
 schmm.save();
-*/
 
-SCHMMODEL.findOne({ _id: "5eada0e20b7c2c337c8347ea" }).then((doc) =>
-  console.log(doc)
-);
+/*
+SCHMMODEL.findOne({
+  hell: "HLLL",
+}).then((doc) => console.log(doc));
+*/
