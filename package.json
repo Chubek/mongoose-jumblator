@@ -4,7 +4,7 @@
   "description": "A field-based Mongoose encryption module.",
   "main": "index.js",
   "scripts": {
-    "test": "node __test__.js",
+    "test": "mocha || true",
     "debug": "node --nolazy --inspect-brk=9229 __test__.js"
   },
   "repository": {
