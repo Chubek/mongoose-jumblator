@@ -16,4 +16,4 @@ If a field is indicated by "encrypt: true", it will be encrypted. If it's also i
 
 Mocha and Chai are ready to be served by me your faithful barista. Or you can forgo testing frameworsk and do it old style. You're the tester!
 
-If you had any problems, contact me on Discord@Chubak#7400 or better yet, fork the repo, and open up an issue!
+If you had any problems, contact me on Discord@Chubak#7400 or better yet, fork the repo and fix it yourself, or at the very least, open up an issue!
