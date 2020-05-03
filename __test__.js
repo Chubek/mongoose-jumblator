@@ -26,6 +26,7 @@ const SCHM = new Schema({
   hell: {
     type: String,
     encrypt: true,
+    searchable: true,
   },
   dell: {
     type: String,
@@ -37,17 +38,16 @@ const SCHM = new Schema({
 SCHM.plugin(jumblator, { secret: "HDFDSF" });
 
 const SCHMMODEL = mongoose.model("SSS", SCHM);
-
+/*
 const schmm = new SCHMMODEL({
-  hell: "HLLL",
-  dell: "hash",
-  poor: "boor",
+  hell: "iris",
+  dell: "avalanche",
+  poor: "longoier",
 });
 
 schmm.save();
-
-/*
-SCHMMODEL.findOne({
-  hell: "HLLL",
-}).then((doc) => console.log(doc));
 */
+
+SCHMMODEL.update({ _id: "5eae21e460ebd43868640298" }, { hell: "killerApp" })
+  .then((doc) => console.log(doc))
+  .catch((e) => console.error(e));
