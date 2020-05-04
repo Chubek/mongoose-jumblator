@@ -1,41 +1,54 @@
-const { encrypt: encryptField, decrypt: decryptField, hash: genSearchHash } = require("./jumblator-encryption");
+import { encryptField, decryptField, generateSearchHash } from './jumblator-encryption';
+import { log } from './log';
+import { Options } from './types';
 
-module.exports = exports = function lastModifiedPlugin(schema, options) {
-  const keySize = options.keySize || 256;
-  const keySalt = options.keySalt || "keySalt";
-  const seed = options.seed || "seed"; //this must be passed!!
-  const encoding = options.encoding || "Hex";
-  const length = options.length || 512;
+// @todo: Fix this
+type Schema = any;
 
-  const providedOptions = {
-    keySize: keySize,
-    keySalt: keySalt,
-    seed: seed,
-    encoding: encoding,
-    length: length,
+interface SchemaType {
+  options: {
+    encrypt: boolean;
+    searchable: boolean;
+  }
+};
+
+export const lastModifiedPlugin = function (schema: Schema, options: Options) {
+  const keySize = options.keySize ?? 256;
+  const keySalt = options.keySalt ?? 'keySalt';
+  const seed = options.seed ?? 'seed';
+  const encoding = options.encoding ?? 'Hex';
+  const length = options.length ?? 512;
+  const secret = options.secret;
+  const providedOptions: Options = {
+    keySize,
+    keySalt,
+    seed,
+    encoding,
+    length,
+    secret
   };
 
-  const pathsToEncrypt = [];
-  const pathsToHash = [];
-  schema.eachPath(function (pathName, schemaType) {
+  const pathsToEncrypt: string[] = [];
+  const pathsToHash: string[] = [];
+  schema.eachPath((pathName: string, schemaType: SchemaType) => {
     if (schemaType.options && schemaType.options.encrypt) {
       pathsToEncrypt.push(pathName);
     }
   });
 
-  schema.eachPath(function (pathName, schemaType) {
+  schema.eachPath((pathName: string, schemaType: SchemaType) => {
     if (schemaType.options && schemaType.options.searchable) {
       pathsToHash.push(pathName);
     }
   });
 
   pathsToEncrypt.forEach((path) => {
-    const newPath = "__" + path + "_enc";
+    const newPath = '__' + path + '_enc';
     schema.add({ [newPath]: String });
   });
 
   pathsToHash.forEach((path) => {
-    const newPath = "__" + path + "_hash";
+    const newPath = '__' + path + '_hash';
     schema.add({ [newPath]: String });
   });
 
@@ -45,8 +58,8 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
 
     for (let i = 0; i < pathsToHash.length; i++) {
       if (Object.keys(conditions).includes(pathsToHash[i])) {
-        const newPath = "__" + pathsToHash[i] + "_hash";
-        const hash = genSearchHash(conditions[pathsToHash[i]]);
+        const newPath = '__' + pathsToHash[i] + '_hash';
+        const hash = generateSearchHash(conditions[pathsToHash[i]]);
         this.where({ [newPath]: hash });
         delete conditions[pathsToHash[i]];
       }
@@ -54,26 +67,26 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
 
     for (let j = 0; j < pathsToEncrypt.length; j++) {
       if (Object.keys(updates).includes(pathsToEncrypt[j])) {
-        const newPath = "__" + pathsToEncrypt[j] + "_enc";
+        const newPath = '__' + pathsToEncrypt[j] + '_enc';
         const enc = await encryptField(
           updates[pathsToEncrypt[j]],
           options.secret,
           providedOptions
         );
-        const newPathHash = "__" + pathsToEncrypt[j] + "_hash";
-        const hash = genSearchHash(updates[pathsToEncrypt[j]]);
+        const newPathHash = '__' + pathsToEncrypt[j] + '_hash';
+        const hash = generateSearchHash(updates[pathsToEncrypt[j]]);
         this.update({}, { [newPath]: enc, [newPathHash]: hash });
         delete updates[pathsToEncrypt[j]];
-        console.log("updates", updates);
-        console.log("conditions", conditions);
+        log.debug('updates', updates);
+        log.debug('conditions', conditions);
       }
     }
   }
 
-  schema.pre("save", async function (next) {
+  schema.pre('save', async function (next: any) {
     for (let j = 0; j < pathsToHash.length; j++) {
-      const hash = genSearchHash(this[pathsToHash[j]]);
-      const hashPath = "__" + pathsToHash[j] + "_hash";
+      const hash = generateSearchHash(this[pathsToHash[j]]);
+      const hashPath = '__' + pathsToHash[j] + '_hash';
       this[hashPath] = hash;
     }
     for (let i = 0; i < pathsToEncrypt.length; i++) {
@@ -82,7 +95,7 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
         options.secret,
         providedOptions
       );
-      const encPath = "__" + pathsToEncrypt[i] + "_enc";
+      const encPath = '__' + pathsToEncrypt[i] + '_enc';
       this[encPath] = enc;
       this[pathsToEncrypt[i]] = undefined;
     }
@@ -90,37 +103,37 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
     next();
   });
 
-  schema.pre("findOne", async function () {
+  schema.pre('findOne', async function () {
     const conditions = this.find()._conditions;
     for (let i = 0; i < pathsToHash.length; i++) {
       if (Object.keys(conditions).includes(pathsToHash[i])) {
-        const newPath = "__" + pathsToHash[i] + "_hash";
-        console.log(conditions[pathsToHash[i]]);
-        const hash = genSearchHash(conditions[pathsToHash[i]]);
-        console.log(hash);
+        const newPath = '__' + pathsToHash[i] + '_hash';
+        log.debug(conditions[pathsToHash[i]]);
+        const hash = generateSearchHash(conditions[pathsToHash[i]]);
+        log.debug(hash);
         delete conditions[pathsToHash[i]];
         this.where({ [newPath]: hash });
-        console.log(conditions);
+        log.debug(conditions);
       }
     }
   });
 
-  schema.pre("find", async function () {
+  schema.pre('find', async function () {
     const conditions = this.find()._conditions;
     for (let i = 0; i < pathsToHash.length; i++) {
       if (Object.keys(conditions).includes(pathsToHash[i])) {
-        const newPath = "__" + pathsToHash[i] + "_hash";
-        console.log(conditions[pathsToHash[i]]);
-        const hash = genSearchHash(conditions[pathsToHash[i]]);
-        console.log(hash);
+        const newPath = '__' + pathsToHash[i] + '_hash';
+        log.debug(conditions[pathsToHash[i]]);
+        const hash = generateSearchHash(conditions[pathsToHash[i]]);
+        log.debug(hash);
         delete conditions[pathsToHash[i]];
         this.where({ [newPath]: hash });
-        console.log(conditions);
+        log.debug(conditions);
       }
     }
   });
 
-  schema.post("findOne", async function (next) {
+  schema.post('findOne', async function (next: any) {
     let keys = [];
     for (let key in next) {
       if (/^__[A-Za-z]+_enc/.test(key)) {
@@ -128,9 +141,9 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
       }
     }
 
-    console.log("keys", keys);
+    log.debug('keys', keys);
     for (let i = 0; i < keys.length; i++) {
-      const originalKey = keys[i].split("_")[2];
+      const originalKey = keys[i].split('_')[2];
       const dec = await decryptField(
         next[keys[i]],
         options.secret,
@@ -138,12 +151,12 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
       );
       next[originalKey] = dec;
       next[keys[i]] = undefined;
-      const hashKey = "__" + originalKey + "_hash";
+      const hashKey = '__' + originalKey + '_hash';
       delete next[hashKey];
     }
   });
 
-  schema.post("find", async function (next) {
+  schema.post('find', async function (next: any) {
     for (let j = 0; j < next.length; j++) {
       let keys = [];
       for (let key in next[j]) {
@@ -153,7 +166,7 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
       }
 
       for (let i = 0; i < keys.length; i++) {
-        const originalKey = keys[i].split("_")[2];
+        const originalKey = keys[i].split('_')[2];
         const dec = await decryptField(
           next[j][keys[i]],
           options.secret,
@@ -161,14 +174,16 @@ module.exports = exports = function lastModifiedPlugin(schema, options) {
         );
         next[j][originalKey] = dec;
         next[j][keys[i]] = undefined;
-        const hashKey = "__" + originalKey + "_hash";
+        const hashKey = '__' + originalKey + '_hash';
         next[j][hashKey] = undefined;
       }
     }
   });
 
-  schema.pre("findOneAndUpdate", updateHandler);
-  schema.pre("updateOne", updateHandler);
-  schema.pre("update", updateHandler);
-  schema.pre("updateMany", updateHandler);
+  schema.pre('findOneAndUpdate', updateHandler);
+  schema.pre('updateOne', updateHandler);
+  schema.pre('update', updateHandler);
+  schema.pre('updateMany', updateHandler);
 };
+
+export default lastModifiedPlugin;

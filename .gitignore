@@ -109,8 +109,13 @@ dist
 .vscode-test
 
 # yarn v2
-
 .yarn/cache
 .yarn/unplugged
 .yarn/build-state.yml
 .pnp.*
+
+# Typescript
+lib/**/*.js
+
+# VS Code
+.vscode
