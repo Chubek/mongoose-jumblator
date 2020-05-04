@@ -116,3 +116,6 @@ dist
 
 # Typescript
 lib/**/*.js
+
+# VS Code
+.vscode
