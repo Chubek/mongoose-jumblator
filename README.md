@@ -19,7 +19,7 @@ A node.js module for encrypting Mongoose fields using AES.
 
 ```javascript
 const mongoose = require("mongoose");
-const jumblator = require("jumblator");
+const jumblator = require("mongoose-jumblator");
 
 const mySchema = new mongoose.Schema({
   fieldOne: {
@@ -57,5 +57,3 @@ But if a field that is indicated as `encrypt: true` is not indicated as `searcha
 Mocha and Chai are ready to be served by me, your faithful barista. Or you can forgo testing frameworks and do it old style. You're the tester!
 
 If you had any problems, contact me on `Discord@Chubak#7400` or `chubakbidpaa@gmail.com` or `Reddit@TheAvogadroConstant`. Better yet, pull a request and fix it yourself. Or open up an issue. Or fork it! Anything's welcome.
-
----
