@@ -114,7 +114,7 @@ dist
 .yarn/build-state.yml
 .pnp.*
 
-
+.vscode
 
 # Typescript
 lib/**/*.js
