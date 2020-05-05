@@ -1,6 +1,6 @@
 {
   "name": "mongoose-jumblator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A field-based Mongoose encryption module.",
   "main": "dist/jumblator-plugin.js",
   "types": "dist/jumblator-plugin.d.ts",
@@ -36,7 +36,7 @@
     "chai": "^4.2.0",
     "crypto-js": "^4.0.0",
     "mocha": "^7.1.2",
-    "mongoose": "^5.9.11"
+    "mongoose": "^5.9.12"
   },
   "devDependencies": {
     "@types/crypto-js": "3.1.45",
