@@ -2,18 +2,60 @@
 
 A node.js module for encrypting Mongoose fields using AES.
 
-## WELCOME TESTERS!
+## Collaborators
 
-To test this unpublished plugin, simply create a schema. Then hook the plugin to it. The plugin options are:
+- Chubak Bidpaa: Crypto, Plugin
+- Alexis Tyler: Convert to Typescript
+- Sethuraman S: Spark and Remittance
 
+---
+
+## How to install and use
+
+1. Create a new project.
+2. `npm init`
+3. `npm i -S mongoose-jumblator`
+4. Create a schema:
+
+```javascript
+const mongoose = require("mongoose");
+const jumblator = require("jumblator");
+
+const mySchema = new mongoose.Schema({
+  fieldOne: {
+    type: String,
+    encrypt: true,
+    searchable: true, //searchable field
+  },
+  fieldTwo: {
+    type: String,
+    encrypt: true, //non-searchable field
+  },
+  fieldThree: String,
+});
+
+mySchema.plugin(jumblator, { secret: "aCompleXW0Rd" /* other options */ });
+
+const mySchemaModel = mongoose.model("EncryptedDocument", mySchema);
+```
+
+From then on, everything works the same. You don't need to change your quries, or updates, or anything. The field is encrypted in your docuemnt, but when you `find[One]`, `findOneAndUpdate` or anything else, it works as if nothing has changed.
+
+But if a field that is indicated as `encrypt: true` is not indicated as `searchable: true`, it won't be searched. So keep that in mind, if you want yout field to be searchable, set it to `searchable: true`.
+
+---
+
+## Options
+
+- secret --- a good secret passphrase for generating a key of the detrmind size. Needs to be complex!
 - keySize --- Size of your key, defaults to 256
 - keySalt --- salt for key generation, defaults to some lame value
 - seed --- seed for creating the initial value hash, defaults to some extremely lame value.
 - encoding --- encoding for the ciphertext, defaults to Hex. Can be Base64, Utf8, Utf16, or Hex.
 - length --- length of the initial value, defautls to 512
 
-If a field is indicated by "encrypt: true", it will be encrypted. If it's also indicated by "searchable: true", then it can be searched. Otherwise it can't be searched. Everything works the same. No need to change any queries or updates.
+Mocha and Chai are ready to be served by me, your faithful barista. Or you can forgo testing frameworks and do it old style. You're the tester!
 
-Mocha and Chai are ready to be served by me your faithful barista. Or you can forgo testing frameworsk and do it old style. You're the tester!
+If you had any problems, contact me on `Discord@Chubak#7400` or `chubakbidpaa@gmail.com` or `Reddit@TheAvogadroConstant`. Better yet, pull a request and fix it yourself. Or open up an issue. Or fork it! Anything's welcome.
 
-If you had any problems, contact me on Discord@Chubak#7400 or better yet, fork the repo and fix it yourself, or at the very least, open up an issue!
+---
