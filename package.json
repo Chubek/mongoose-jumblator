@@ -2,7 +2,8 @@
   "name": "mongoose-jumblator",
   "version": "1.0.0",
   "description": "A field-based Mongoose encryption module.",
-  "main": "index.js",
+  "main": "dist/jumblator-plugin.js",
+  "types": "dist/jumblator-plugin.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "mocha || true",
