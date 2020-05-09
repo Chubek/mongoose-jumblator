@@ -1,6 +1,11 @@
-import { encryptField, decryptField, generateSearchHash } from './jumblator-encryption';
-import { log } from './log';
-import { Options } from './types';
+import {
+  encryptField,
+  decryptField,
+  generateSearchHash,
+} from "./jumblator-encryption";
+import { log } from "./log";
+import { Options } from "./types";
+import _ from "lodash";
 
 // @todo: Fix this
 type Schema = any;
@@ -9,14 +14,17 @@ interface SchemaType {
   options: {
     encrypt: boolean;
     searchable: boolean;
-  }
-};
+  };
+}
 
-export const lastModifiedPlugin = function (schema: Schema, options: Options) {
+export const fieldEncryptionPlugin = function (
+  schema: Schema,
+  options: Options
+) {
   const keySize = options.keySize ?? 256;
-  const keySalt = options.keySalt ?? 'keySalt';
-  const seed = options.seed ?? 'seed';
-  const encoding = options.encoding ?? 'Hex';
+  const keySalt = options.keySalt ?? "keySalt";
+  const seed = options.seed ?? "seed";
+  const encoding = options.encoding ?? "Hex";
   const length = options.length ?? 512;
   const secret = options.secret;
   const providedOptions: Options = {
@@ -25,7 +33,7 @@ export const lastModifiedPlugin = function (schema: Schema, options: Options) {
     seed,
     encoding,
     length,
-    secret
+    secret,
   };
 
   const pathsToEncrypt: string[] = [];
@@ -43,14 +51,67 @@ export const lastModifiedPlugin = function (schema: Schema, options: Options) {
   });
 
   pathsToEncrypt.forEach((path) => {
-    const newPath = '__' + path + '_enc';
+    const pathSplit = path.split(".");
+    if (pathSplit.length > 1) {
+      const newPath = pathSplit[0] + ".__" + pathSplit[1] + "_enc";
+      schema.add({ [newPath]: String });
+    }
+    const newPath = "__" + path + "_enc";
     schema.add({ [newPath]: String });
   });
 
   pathsToHash.forEach((path) => {
-    const newPath = '__' + path + '_hash';
+    const pathSplit = path.split(".");
+    if (pathSplit.length > 1) {
+      const newPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+      schema.add({ [newPath]: String });
+    }
+    const newPath = "__" + path + "_hash";
     schema.add({ [newPath]: String });
   });
+
+  async function decryptHandler(next: any) {
+    let keys = [];
+    for (let key in next) {
+      if (/^__[A-Za-z]+_enc/.test(key)) {
+        keys.push(key);
+      }
+    }
+
+    pathsToEncrypt.forEach((path) => {
+      const keySplit = path.split(".");
+      if (keySplit.length > 1) {
+        for (let nextKey in next) {
+          if (nextKey === keySplit[0]) {
+            keys.push(nextKey + ".__" + keySplit[1] + "_enc");
+          }
+        }
+      }
+    });
+
+    for (let i = 0; i < keys.length; i++) {
+      const originalKey = keys[i].split("_")[2];
+      const originalKeySplitPeriod = keys[i].split(".");
+
+      const dec = await decryptField(
+        _.get(next, keys[i]),
+        options.secret,
+        providedOptions
+      );
+
+      _.set(next, originalKey, dec);
+      let hashKey = "__" + originalKey + "_hash";
+      if (originalKeySplitPeriod.length > 1) {
+        hashKey =
+          originalKeySplitPeriod[0] +
+          ".__" +
+          originalKeySplitPeriod[1].split("_")[2] +
+          "_hash";
+      }
+      _.set(next, hashKey, (undefined as unknown) as String);
+      _.set(next, keys[i], (undefined as unknown) as String);
+    }
+  }
 
   async function updateHandler() {
     const conditions = this._conditions;
@@ -58,7 +119,11 @@ export const lastModifiedPlugin = function (schema: Schema, options: Options) {
 
     for (let i = 0; i < pathsToHash.length; i++) {
       if (Object.keys(conditions).includes(pathsToHash[i])) {
-        const newPath = '__' + pathsToHash[i] + '_hash';
+        const pathSplit = pathsToHash[i].split(".");
+        let newPath = "__" + pathsToHash[i] + "_hash";
+        if (pathSplit.length > 1) {
+          newPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+        }
         const hash = generateSearchHash(conditions[pathsToHash[i]]);
         this.where({ [newPath]: hash });
         delete conditions[pathsToHash[i]];
@@ -67,96 +132,93 @@ export const lastModifiedPlugin = function (schema: Schema, options: Options) {
 
     for (let j = 0; j < pathsToEncrypt.length; j++) {
       if (Object.keys(updates).includes(pathsToEncrypt[j])) {
-        const newPath = '__' + pathsToEncrypt[j] + '_enc';
+        const pathSplit = pathsToEncrypt[j].split(".");
+        let newPath = "__" + pathsToEncrypt[j] + "_enc";
+        if (pathSplit.length > 1) {
+          newPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+        }
         const enc = await encryptField(
           updates[pathsToEncrypt[j]],
           options.secret,
           providedOptions
         );
-        const newPathHash = '__' + pathsToEncrypt[j] + '_hash';
+        const newPathHash = "__" + pathsToEncrypt[j] + "_hash";
         const hash = generateSearchHash(updates[pathsToEncrypt[j]]);
         this.update({}, { [newPath]: enc, [newPathHash]: hash });
         delete updates[pathsToEncrypt[j]];
-        log.debug('updates', updates);
-        log.debug('conditions', conditions);
       }
     }
   }
 
-  schema.pre('save', async function (next: any) {
+  schema.pre("save", async function (next: any) {
     for (let j = 0; j < pathsToHash.length; j++) {
+      const pathSplit = pathsToHash[j].split(".");
       const hash = generateSearchHash(this[pathsToHash[j]]);
-      const hashPath = '__' + pathsToHash[j] + '_hash';
-      this[hashPath] = hash;
+      let hashPath = "__" + pathsToHash[j] + "_hash";
+      if (pathSplit.length > 1) {
+        hashPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+        _.set(this, hashPath, hash.toString());
+      } else {
+        this[hashPath] = hash.toString();
+      }
     }
     for (let i = 0; i < pathsToEncrypt.length; i++) {
       const enc = await encryptField(
-        this[pathsToEncrypt[i]],
+        _.get(this, pathsToEncrypt[i]),
         options.secret,
         providedOptions
       );
-      const encPath = '__' + pathsToEncrypt[i] + '_enc';
-      this[encPath] = enc;
-      this[pathsToEncrypt[i]] = undefined;
+      const pathSplit = pathsToEncrypt[i].split(".");
+      let encPath = "__" + pathsToEncrypt[i] + "_enc";
+      if (pathSplit.length > 1) {
+        encPath = pathSplit[0] + ".__" + pathSplit[1] + "_enc";
+        _.set(this, encPath, enc);
+        _.unset(this, pathsToEncrypt[i]);
+      } else {
+        this[encPath] = enc;
+        this[pathsToEncrypt[i]] = undefined;
+      }
     }
 
     next();
   });
+  schema.post("save", decryptHandler);
+  schema.post("findOne", decryptHandler);
+  schema.post("findOneAndUpdate", decryptHandler);
 
-  schema.pre('findOne', async function () {
+  schema.pre("findOne", async function () {
     const conditions = this.find()._conditions;
     for (let i = 0; i < pathsToHash.length; i++) {
       if (Object.keys(conditions).includes(pathsToHash[i])) {
-        const newPath = '__' + pathsToHash[i] + '_hash';
-        log.debug(conditions[pathsToHash[i]]);
+        const pathSplit = pathsToHash[i].split(".");
         const hash = generateSearchHash(conditions[pathsToHash[i]]);
-        log.debug(hash);
+        let newPath = "__" + pathsToHash[i] + "_hash";
+        if (pathSplit.length > 1) {
+          newPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+        }
         delete conditions[pathsToHash[i]];
         this.where({ [newPath]: hash });
-        log.debug(conditions);
       }
     }
   });
 
-  schema.pre('find', async function () {
+  schema.pre("find", async function () {
     const conditions = this.find()._conditions;
     for (let i = 0; i < pathsToHash.length; i++) {
       if (Object.keys(conditions).includes(pathsToHash[i])) {
-        const newPath = '__' + pathsToHash[i] + '_hash';
-        log.debug(conditions[pathsToHash[i]]);
+        const pathSplit = pathsToHash[i].split(".");
         const hash = generateSearchHash(conditions[pathsToHash[i]]);
-        log.debug(hash);
+        let newPath = "__" + pathsToHash[i] + "_hash";
+        if (pathSplit.length > 1) {
+          newPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+        }
         delete conditions[pathsToHash[i]];
         this.where({ [newPath]: hash });
-        log.debug(conditions);
       }
     }
   });
 
-  schema.post('findOne', async function (next: any) {
-    let keys = [];
-    for (let key in next) {
-      if (/^__[A-Za-z]+_enc/.test(key)) {
-        keys.push(key);
-      }
-    }
-
-    log.debug('keys', keys);
-    for (let i = 0; i < keys.length; i++) {
-      const originalKey = keys[i].split('_')[2];
-      const dec = await decryptField(
-        next[keys[i]],
-        options.secret,
-        providedOptions
-      );
-      next[originalKey] = dec;
-      next[keys[i]] = undefined;
-      const hashKey = '__' + originalKey + '_hash';
-      delete next[hashKey];
-    }
-  });
-
-  schema.post('find', async function (next: any) {
+  schema.post("find", async function (next: any) {
     for (let j = 0; j < next.length; j++) {
       let keys = [];
       for (let key in next[j]) {
@@ -165,25 +227,43 @@ export const lastModifiedPlugin = function (schema: Schema, options: Options) {
         }
       }
 
+      pathsToEncrypt.forEach((path) => {
+        const keySplit = path.split(".");
+        if (keySplit.length > 1) {
+          for (let nextKey in next[j]) {
+            if (nextKey === keySplit[0]) {
+              keys.push(nextKey + ".__" + keySplit[1] + "_enc");
+            }
+          }
+        }
+      });
+
       for (let i = 0; i < keys.length; i++) {
-        const originalKey = keys[i].split('_')[2];
+        const originalKey = keys[i].split("_")[2];
+        const originalKeySplitPeriod = keys[i].split(".");
+
         const dec = await decryptField(
-          next[j][keys[i]],
+          _.get(next[j], keys[i]),
           options.secret,
           providedOptions
         );
-        next[j][originalKey] = dec;
-        next[j][keys[i]] = undefined;
-        const hashKey = '__' + originalKey + '_hash';
-        next[j][hashKey] = undefined;
+        _.set(next[j], originalKey, dec);
+        let hashKey = "__" + originalKey + "_hash";
+        if (originalKeySplitPeriod.length > 1) {
+          hashKey =
+            originalKeySplitPeriod[0] +
+            ".__" +
+            originalKeySplitPeriod[1].split("_")[2] +
+            "_hash";
+        }
+        _.set(next[j], hashKey, (undefined as unknown) as String);
+        _.set(next[j], keys[i], (undefined as unknown) as String);
       }
     }
   });
 
-  schema.pre('findOneAndUpdate', updateHandler);
-  schema.pre('updateOne', updateHandler);
-  schema.pre('update', updateHandler);
-  schema.pre('updateMany', updateHandler);
+  schema.pre("findOneAndUpdate", updateHandler);
+  schema.pre("updateOne", updateHandler);
+  schema.pre("update", updateHandler);
+  schema.pre("updateMany", updateHandler);
 };
-
-export default lastModifiedPlugin;
