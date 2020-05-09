@@ -10,6 +10,11 @@ A node.js module for encrypting Mongoose fields using AES.
 
 ---
 
+## Version 1.2.0 Changes
+
+- You can now go two levels deep. It may not work for more than that so keep this in mind.
+- Now you can view the decrypted info after saving.
+
 ## How to install and use
 
 1. Create a new project.
@@ -19,7 +24,7 @@ A node.js module for encrypting Mongoose fields using AES.
 
 ```javascript
 const mongoose = require("mongoose");
-const jumblator = require("mongoose-jumblator");
+const jumblator = require("mongoose-jumblator").fieldEncryptionPlugin;
 
 const mySchema = new mongoose.Schema({
   fieldOne: {
