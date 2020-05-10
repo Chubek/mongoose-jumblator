@@ -62,3 +62,7 @@ But if a field that is indicated as `encrypt: true` is not indicated as `searcha
 Mocha and Chai are ready to be served by me, your faithful barista. Or you can forgo testing frameworks and do it old style. You're the tester!
 
 If you had any problems, contact me on `Discord@Chubak#7400` or `chubakbidpaa@gmail.com` or `Reddit@TheAvogadroConstant`. Better yet, pull a request and fix it yourself. Or open up an issue. Or fork it! Anything's welcome.
+
+## Donation
+
+Enjoyed this JavaScript plugin? Buy me a cup of JavaCoffee here. [Link](https://dashboard.yekpay.com/payment-link/6708/f76b69b99f6aeecc1c3508e1fd99f86b9b174b87).
