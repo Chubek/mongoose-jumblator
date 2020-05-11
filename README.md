@@ -66,3 +66,10 @@ If you had any problems, contact me on `Discord@Chubak#7400` or `chubakbidpaa@gm
 ## Donation
 
 Enjoyed this JavaScript plugin? Buy me a cup of JavaCoffee here. [Link](https://dashboard.yekpay.com/payment-link/6708/f76b69b99f6aeecc1c3508e1fd99f86b9b174b87).
+
+
+Or via Bitcoin:
+
+```
+bc1qsr5nq9ek3qawhsq59ypcw23gfzqlw97nq5p2jy
+```
