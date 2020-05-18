@@ -93,11 +93,14 @@ export const fieldEncryptionPlugin = function (
       const originalKey = keys[i].split("_")[2];
       const originalKeySplitPeriod = keys[i].split(".");
 
-      const dec = await decryptField(
-        _.get(next, keys[i]),
-        options.secret,
-        providedOptions
-      );
+      let dec;
+      if (_.get(next, keys[i])) {
+        dec = await decryptField(
+          _.get(next, keys[i]),
+          options.secret,
+          providedOptions
+        );
+      }
 
       _.set(next, originalKey, dec);
       let hashKey = "__" + originalKey + "_hash";
@@ -116,9 +119,8 @@ export const fieldEncryptionPlugin = function (
   async function updateHandler() {
     const conditions = this._conditions;
     const updates = this._update;
-
     for (let i = 0; i < pathsToHash.length; i++) {
-      if (Object.keys(conditions).includes(pathsToHash[i])) {
+      if (_.has(conditions, pathsToHash[i])) {
         const pathSplit = pathsToHash[i].split(".");
         let newPath = "__" + pathsToHash[i] + "_hash";
         if (pathSplit.length > 1) {
@@ -131,18 +133,26 @@ export const fieldEncryptionPlugin = function (
     }
 
     for (let j = 0; j < pathsToEncrypt.length; j++) {
-      if (Object.keys(updates).includes(pathsToEncrypt[j])) {
+      if (_.has(updates, pathsToEncrypt[j])) {
         const pathSplit = pathsToEncrypt[j].split(".");
         let newPath = "__" + pathsToEncrypt[j] + "_enc";
         if (pathSplit.length > 1) {
-          newPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+          newPath = pathSplit[0] + ".__" + pathSplit[1] + "_enc";
         }
-        const enc = await encryptField(
-          updates[pathsToEncrypt[j]],
-          options.secret,
-          providedOptions
-        );
-        const newPathHash = "__" + pathsToEncrypt[j] + "_hash";
+
+        let enc;
+        if (updates[pathsToEncrypt[j]]) {
+          enc = await encryptField(
+            updates[pathsToEncrypt[j]],
+            options.secret,
+            providedOptions
+          );
+        }
+        
+        let newPathHash = "__" + pathsToEncrypt[j] + "_hash";
+        if (pathSplit.length > 1) {
+          newPathHash = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
+        }
         const hash = generateSearchHash(updates[pathsToEncrypt[j]]);
         this.update({}, { [newPath]: enc, [newPathHash]: hash });
         delete updates[pathsToEncrypt[j]];
@@ -163,11 +173,14 @@ export const fieldEncryptionPlugin = function (
       }
     }
     for (let i = 0; i < pathsToEncrypt.length; i++) {
-      const enc = await encryptField(
-        _.get(this, pathsToEncrypt[i]),
-        options.secret,
-        providedOptions
-      );
+      let enc;
+      if (_.get(this, pathsToEncrypt[i])) {
+        enc = await encryptField(
+          _.get(this, pathsToEncrypt[i]),
+          options.secret,
+          providedOptions
+        );
+      }
       const pathSplit = pathsToEncrypt[i].split(".");
       let encPath = "__" + pathsToEncrypt[i] + "_enc";
       if (pathSplit.length > 1) {
@@ -205,7 +218,7 @@ export const fieldEncryptionPlugin = function (
   schema.pre("find", async function () {
     const conditions = this.find()._conditions;
     for (let i = 0; i < pathsToHash.length; i++) {
-      if (Object.keys(conditions).includes(pathsToHash[i])) {
+      if (_.has(conditions, pathsToHash[i])) {
         const pathSplit = pathsToHash[i].split(".");
         const hash = generateSearchHash(conditions[pathsToHash[i]]);
         let newPath = "__" + pathsToHash[i] + "_hash";
@@ -242,11 +255,15 @@ export const fieldEncryptionPlugin = function (
         const originalKey = keys[i].split("_")[2];
         const originalKeySplitPeriod = keys[i].split(".");
 
-        const dec = await decryptField(
-          _.get(next[j], keys[i]),
-          options.secret,
-          providedOptions
-        );
+        let dec;
+        if (_.get(next[j], keys[i])) {
+          dec = await decryptField(
+            _.get(next[j], keys[i]),
+            options.secret,
+            providedOptions
+          );
+        }
+
         _.set(next[j], originalKey, dec);
         let hashKey = "__" + originalKey + "_hash";
         if (originalKeySplitPeriod.length > 1) {
@@ -266,4 +283,8 @@ export const fieldEncryptionPlugin = function (
   schema.pre("updateOne", updateHandler);
   schema.pre("update", updateHandler);
   schema.pre("updateMany", updateHandler);
+  schema.post("findOneAndUpdate", decryptHandler);
+  schema.post("updateOne", decryptHandler);
+  schema.post("update", decryptHandler);
+  schema.post("updateMany", decryptHandler);
 };
