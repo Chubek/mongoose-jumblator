@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "test": "mocha || true",
-    "debug": "node --nolazy --inspect-brk=9229 __test__.js"
+    "debug": "node --nolazy --inspect-brk=9229 ./test/naive.js"
   },
   "repository": {
     "type": "git",

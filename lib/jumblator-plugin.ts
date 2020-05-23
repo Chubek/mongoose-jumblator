@@ -127,7 +127,7 @@ export const fieldEncryptionPlugin = function (
           newPath = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
         }
         const hash = generateSearchHash(conditions[pathsToHash[i]]);
-        this.where({ [newPath]: hash });
+        _.assign(this._conditions, { [newPath]: hash });
         delete conditions[pathsToHash[i]];
       }
     }
@@ -148,14 +148,18 @@ export const fieldEncryptionPlugin = function (
             providedOptions
           );
         }
-        
+
         let newPathHash = "__" + pathsToEncrypt[j] + "_hash";
         if (pathSplit.length > 1) {
           newPathHash = pathSplit[0] + ".__" + pathSplit[1] + "_hash";
         }
         const hash = generateSearchHash(updates[pathsToEncrypt[j]]);
-        this.update({}, { [newPath]: enc, [newPathHash]: hash });
-        delete updates[pathsToEncrypt[j]];
+        _.assign(this._update, {
+          [newPath]: enc,
+          [newPathHash]: hash.toString(),
+        });
+
+        delete this._update[pathsToEncrypt[j]];
       }
     }
   }
